@@ -1,0 +1,18 @@
+[submodule "lib/openzeppelin-contracts"]
+	path = lib/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "lib/ds-math"]
+	path = lib/ds-math
+	url = https://github.com/dapphub/ds-math
+[submodule "lib/uniswap-lib"]
+	path = lib/uniswap-lib
+	url = https://github.com/uniswap/uniswap-lib
+[submodule "lib/uniswap-v2-core"]
+	path = lib/uniswap-v2-core
+	url = https://github.com/uniswap/uniswap-v2-core
+[submodule "lib/ens"]
+	path = lib/ens
+	url = https://github.com/ensdomains/ens
+[submodule "lib/ds-test"]
+	path = lib/ds-test
+	url = https://github.com/dapphub/ds-test

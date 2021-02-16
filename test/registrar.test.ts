@@ -1,8 +1,9 @@
 import { ethers } from "hardhat";
 import { assert } from "chai";
-import { submit, elapseTime } from "./support";
+import { utils } from "ethers";
+import { concat } from "@ethersproject/bytes";
+import { submit, elapseTime, mineBlocks } from "./support";
 import { deployAll } from "../src/deploy";
-import * as ensUtils from "../src/ens";
 
 describe("Registrar", function () {
   it("should allow registration of names with Radicle tokens", async function () {
@@ -26,14 +27,14 @@ describe("Registrar", function () {
     assert(await registrar.available("cloudhead"));
     assert(await registrar.available("treehead"));
 
-    // Register `cloudhead.radicle.eth`.
-    await submit(
-      registrar.connect(registrant).registerRad("cloudhead", registrantAddr)
-    );
-    assert.equal(
-      await ens.owner(ensUtils.nameHash("cloudhead.radicle.eth")),
-      registrantAddr
-    );
+    // Commit to `cloudhead.radicle.eth`.
+    const label = "cloudhead";
+    const secret = ethers.utils.randomBytes(32)
+    const commitment = utils.keccak256(concat([utils.toUtf8Bytes(label), registrantAddr, secret]));
+    await submit(registrar.connect(registrant).commit(commitment))
+    await mineBlocks(50);
+    await submit(registrar.connect(registrant).register("cloudhead", registrantAddr, secret));
+    assert.equal(await ens.owner(ethers.utils.namehash("cloudhead.radicle.eth")), registrantAddr);
     assert(!(await registrar.available("cloudhead")));
 
     // Check that the burn happened.
@@ -63,15 +64,9 @@ describe("Registrar", function () {
     const { ens, registrar } = await deployAll(owner);
     const newOwnerAddr = await newOwner.getAddress();
 
-    assert.equal(
-      await ens.owner(ensUtils.nameHash("radicle.eth")),
-      registrar.address
-    );
+    assert.equal(await ens.owner(ethers.utils.namehash("radicle.eth")), registrar.address);
     await submit(registrar.connect(owner).setDomainOwner(newOwnerAddr));
 
-    assert.equal(
-      await ens.owner(ensUtils.nameHash("radicle.eth")),
-      newOwnerAddr
-    );
+    assert.equal(await ens.owner(ethers.utils.namehash("radicle.eth")), newOwnerAddr);
   });
 });

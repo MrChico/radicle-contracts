@@ -4,3 +4,7 @@
 /contract-bindings
 /yarn-error.log
 /node_modules
+/out
+
+# dapptools
+**/hevm.cache.*

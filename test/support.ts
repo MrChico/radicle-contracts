@@ -1,18 +1,10 @@
-import {
-  BigNumber,
-  BigNumberish,
-  ContractReceipt,
-  ContractTransaction,
-  utils,
-} from "ethers";
+import { BigNumber, BigNumberish, ContractReceipt, ContractTransaction, utils } from "ethers";
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 
 export { nextDeployedContractAddr } from "../src/deploy";
 
-export async function wait(
-  response: Promise<ContractTransaction>
-): Promise<ContractReceipt> {
+export async function wait(response: Promise<ContractTransaction>): Promise<ContractReceipt> {
   return (await response).wait();
 }
 
@@ -34,24 +26,28 @@ export async function submit(
 /// Submit a transaction and expect it to fail. Throws an error if it succeeds.
 export async function submitFailing(
   tx: Promise<ContractTransaction>,
+  txName?: string,
+  expectedCause?: string
+): Promise<void> {
+  const receipt = tx.then((result) => result.wait());
+  await expectTxFail(receipt, txName, expectedCause);
+}
+
+/// Expect a transaction to fail. Throws an error if it succeeds.
+export async function expectTxFail<T>(
+  tx: Promise<T>,
   txName = "transaction",
   expectedCause?: string
 ): Promise<void> {
   try {
-    await (await tx).wait();
+    await tx;
   } catch (error) {
     if (expectedCause) {
       if (!(error instanceof Error)) {
         throw error;
       }
-      const cause = error.message.replace(
-        "VM Exception while processing transaction: revert ",
-        ""
-      );
-      expect(cause).to.equal(
-        expectedCause,
-        txName + " failed because of an unexpected reason"
-      );
+      const cause = error.message.replace("VM Exception while processing transaction: revert ", "");
+      expect(cause).to.equal(expectedCause, txName + " failed because of an unexpected reason");
     }
     return;
   }
@@ -100,6 +96,23 @@ export function numberToAddress(num: BigNumberish): string {
   const hex = utils.hexlify(num);
   const padded = utils.hexZeroPad(hex, 20);
   return utils.getAddress(padded);
+}
+
+export function getSigningKey(address: string): utils.SigningKey {
+  const { initialIndex, count, path, mnemonic } = network.config.accounts as {
+    initialIndex: number;
+    count: number;
+    path: string;
+    mnemonic: string;
+  };
+  const parentNode = utils.HDNode.fromMnemonic(mnemonic).derivePath(path);
+  for (let index = initialIndex; index < initialIndex + count; index++) {
+    const node = parentNode.derivePath(index.toString());
+    if (node.address == address) {
+      return new utils.SigningKey(node.privateKey);
+    }
+  }
+  throw `No private key found for address ${address}`;
 }
 
 export function expectBigNumberEq(

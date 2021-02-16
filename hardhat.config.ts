@@ -25,30 +25,34 @@ export default {
   },
 };
 
-// Additional contracts to generate TypeScript bindings for
+// Additional contracts to generate TypeScript bindings for.
+// Only contracts never used in .sol files should be listed here to avoid conflicts.
 const contracts = [
-  "node_modules/@ensdomains/ethregistrar/build/contracts/BaseRegistrar.json",
+  "@ensdomains/ens/build/contracts/ENSRegistry.json",
+  "@ensdomains/ethregistrar/build/contracts/BaseRegistrar.json",
+  "@ensdomains/ethregistrar/build/contracts/BaseRegistrarImplementation.json",
+  "@uniswap/v2-core/build/UniswapV2Factory.json",
+  "@uniswap/v2-periphery/build/UniswapV2Router02.json",
+  "@uniswap/v2-periphery/build/WETH9.json",
 ];
 
 task(TASK_COMPILE).setAction(async (_, runtime, runSuper) => {
   await runSuper();
   const artifacts = await runtime.artifacts.getArtifactPaths();
-  artifacts.push(...contracts.map((contract) => path.resolve(contract)));
+  artifacts.push(...contracts.map((contract) => path.resolve("node_modules/" + contract)));
   const artifactsGlob = "{" + artifacts.join(",") + "}";
   await typeChain(artifactsGlob, ".");
   console.log(`Successfully generated Typechain artifacts!`);
 });
 
-task(TASK_COMPILE_SOLIDITY_GET_COMPILER_INPUT).setAction(
-  async (_, __, runSuper) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const input = await runSuper();
-    // eslint-disable-next-line
-    input.settings.outputSelection["*"]["*"].push("storageLayout");
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return input;
-  }
-);
+task(TASK_COMPILE_SOLIDITY_GET_COMPILER_INPUT).setAction(async (_, __, runSuper) => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const input = await runSuper();
+  // eslint-disable-next-line
+  input.settings.outputSelection["*"]["*"].push("storageLayout");
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return input;
+});
 
 async function typeChain(files: string, modulePath: string): Promise<void> {
   const outDir = "./contract-bindings";
